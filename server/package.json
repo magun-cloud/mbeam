@@ -1,0 +1,14 @@
+{
+  "name": "mbeam-server",
+  "version": "0.1.0",
+  "description": "Magun Beam - Tunnel server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "uuid": "^11.0.0"
+  }
+}

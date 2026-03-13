@@ -1,0 +1,20 @@
+{
+  "name": "mbeam",
+  "version": "0.1.0",
+  "description": "Magun Beam – instant HTTPS tunnels to localhost",
+  "main": "index.js",
+  "bin": {
+    "mbeam": "./bin/mbeam.js"
+  },
+  "scripts": {
+    "test": "node bin/mbeam.js --help"
+  },
+  "keywords": ["tunnel", "ngrok", "localhost", "magun", "preview"],
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
