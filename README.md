@@ -94,12 +94,9 @@ Flow:
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install -y nodejs
 
-# Install PM2 (process manager) and nginx
+# Install PM2 (process manager), nginx, and certbot
 sudo npm install -g pm2
-sudo apt install -y nginx certbot python3-certbot-dns-cloudflare
-```
-
-> **Tip:** If you use Cloudflare for DNS (recommended), the wildcard SSL setup below is much simpler. Any DNS provider that supports wildcard records will work.
+sudo apt install -y nginx certbot
 
 ---
 
@@ -133,44 +130,11 @@ dig +short anything.magun.cloud
 
 ### 4. SSL — wildcard certificate
 
-You need a wildcard cert for `*.magun.cloud`. The easiest way is a DNS challenge via Certbot.
-
-**With Cloudflare DNS:**
+Wildcard certs require a DNS challenge. Certbot handles this by asking you to add a TXT record to your domain — works with any DNS provider.
 
 ```bash
-# Install the Cloudflare plugin
-sudo apt install python3-certbot-dns-cloudflare
+sudo apt install -y certbot
 
-# Create Cloudflare API credentials file
-sudo mkdir -p /etc/letsencrypt
-sudo nano /etc/letsencrypt/cloudflare.ini
-```
-
-Add your Cloudflare API token (with `Zone:DNS:Edit` permission):
-
-```ini
-dns_cloudflare_api_token = YOUR_CLOUDFLARE_API_TOKEN
-```
-
-```bash
-sudo chmod 600 /etc/letsencrypt/cloudflare.ini
-
-# Request the wildcard cert
-sudo certbot certonly \
-  --dns-cloudflare \
-  --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
-  -d "magun.cloud" \
-  -d "*.magun.cloud" \
-  --preferred-challenges dns-01
-```
-
-Your certs will be at:
-- `/etc/letsencrypt/live/magun.cloud/fullchain.pem`
-- `/etc/letsencrypt/live/magun.cloud/privkey.pem`
-
-**With other DNS providers**, use the manual DNS challenge:
-
-```bash
 sudo certbot certonly \
   --manual \
   --preferred-challenges dns \
@@ -178,7 +142,22 @@ sudo certbot certonly \
   -d "*.magun.cloud"
 ```
 
-Follow the prompts to add a `_acme-challenge` TXT record to your DNS.
+Certbot will print something like:
+
+```
+Please deploy a DNS TXT record under the name:
+_acme-challenge.magun.cloud
+with the following value:
+aBcDeFgHiJkLmNoPqRsTuVwXyZ123456789
+```
+
+Go to your DNS provider, add that TXT record, wait ~30 seconds, then press Enter to continue. Certbot will issue the cert.
+
+Your certs will be at:
+- `/etc/letsencrypt/live/magun.cloud/fullchain.pem`
+- `/etc/letsencrypt/live/magun.cloud/privkey.pem`
+
+Auto-renewal also needs the DNS challenge, so run this once a year or set a reminder. Alternatively use `--manual-auth-hook` with your DNS provider's API for fully automated renewal.
 
 ---
 
