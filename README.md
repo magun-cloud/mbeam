@@ -7,7 +7,7 @@ mbeam exposes any local port to a public HTTPS URL under your own domain — lik
 Every tunnel has a **brain**: it watches traffic, auto-detects your framework, caches responses for offline fallback, streams live events via SSE, and exposes a JSON API that other agents can subscribe to.
 
 ```
-Local server (port 3000)  ←→  mbeam CLI  ←→  mbeam server  ←→  https://abc123.magun.cloud
+Local server (port 3000)  ←→  mbeam CLI  ←→  mbeam server  ←→  https://abc123.your-domain.com
                                                                    └── /_beam  (live inspector)
                                                                    └── /_beam/stream  (SSE)
                                                                    └── /_beam/api/stats  (JSON)
@@ -58,21 +58,21 @@ Local server (port 3000)  ←→  mbeam CLI  ←→  mbeam server  ←→  https
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  VPS (magun.cloud)                                              │
+│  VPS (your-domain.com)                                          │
 │                                                                 │
 │  nginx (443) ──► mbeam server (3000)                           │
 │                       │                                         │
 │                       ├── WebSocket /tunnel  ◄── CLI client    │
 │                       │        (persistent connection)          │
 │                       │                                         │
-│                       └── HTTP proxy  ◄── *.magun.cloud        │
+│                       └── HTTP proxy  ◄── *.your-domain.com    │
 │                                           incoming requests     │
 └─────────────────────────────────────────────────────────────────┘
 
 Flow:
-  1. CLI connects to wss://tunnel.magun.cloud/tunnel
+  1. CLI connects to wss://tunnel.your-domain.com/tunnel
   2. Server assigns subdomain, e.g. a3f9c12b
-  3. Public URL https://a3f9c12b.magun.cloud is live
+  3. Public URL https://a3f9c12b.your-domain.com is live
   4. Incoming HTTP request → server → WebSocket → CLI → localhost:3000
   5. Response flows back the same way
   6. Brain records everything, inspector UI updates in real time
@@ -85,7 +85,7 @@ Flow:
 ### 1. Prerequisites
 
 - A Linux VPS (Ubuntu 22.04 / Debian 12 recommended)
-- A domain you control (e.g. `magun.cloud`)
+- A domain you control (e.g. `your-domain.com`)
 - Root or sudo access
 - Node.js 18+ installed
 
@@ -97,6 +97,7 @@ sudo apt install -y nodejs
 # Install PM2 (process manager), nginx, and certbot
 sudo npm install -g pm2
 sudo apt install -y nginx certbot
+```
 
 ---
 
@@ -114,15 +115,15 @@ npm install
 
 In your DNS provider, add **two records** pointing to your VPS IP:
 
-| Type | Name            | Value         |
-|------|-----------------|---------------|
-| A    | `magun.cloud`   | `YOUR_VPS_IP` |
-| A    | `*.magun.cloud` | `YOUR_VPS_IP` |
+| Type | Name                  | Value         |
+|------|-----------------------|---------------|
+| A    | `your-domain.com`     | `YOUR_VPS_IP` |
+| A    | `*.your-domain.com`   | `YOUR_VPS_IP` |
 
 Wait a few minutes for DNS to propagate. Verify:
 
 ```bash
-dig +short anything.magun.cloud
+dig +short anything.your-domain.com
 # Should return your VPS IP
 ```
 
@@ -138,15 +139,15 @@ sudo apt install -y certbot
 sudo certbot certonly \
   --manual \
   --preferred-challenges dns \
-  -d "magun.cloud" \
-  -d "*.magun.cloud"
+  -d "your-domain.com" \
+  -d "*.your-domain.com"
 ```
 
 Certbot will print something like:
 
 ```
 Please deploy a DNS TXT record under the name:
-_acme-challenge.magun.cloud
+_acme-challenge.your-domain.com
 with the following value:
 aBcDeFgHiJkLmNoPqRsTuVwXyZ123456789
 ```
@@ -154,8 +155,8 @@ aBcDeFgHiJkLmNoPqRsTuVwXyZ123456789
 Go to your DNS provider, add that TXT record, wait ~30 seconds, then press Enter to continue. Certbot will issue the cert.
 
 Your certs will be at:
-- `/etc/letsencrypt/live/magun.cloud/fullchain.pem`
-- `/etc/letsencrypt/live/magun.cloud/privkey.pem`
+- `/etc/letsencrypt/live/your-domain.com/fullchain.pem`
+- `/etc/letsencrypt/live/your-domain.com/privkey.pem`
 
 Auto-renewal also needs the DNS challenge, so run this once a year or set a reminder. Alternatively use `--manual-auth-hook` with your DNS provider's API for fully automated renewal.
 
@@ -166,20 +167,20 @@ Auto-renewal also needs the DNS challenge, so run this once a year or set a remi
 Copy the provided nginx config:
 
 ```bash
-sudo cp nginx/magun-cloud.conf /etc/nginx/sites-available/magun-cloud
-sudo ln -s /etc/nginx/sites-available/magun-cloud /etc/nginx/sites-enabled/
+sudo cp nginx/magun-cloud.conf /etc/nginx/sites-available/your-domain
+sudo ln -s /etc/nginx/sites-available/your-domain /etc/nginx/sites-enabled/
 ```
 
-Edit the config if your domain or cert paths differ:
+Open it and replace `magun.cloud` with your domain:
 
 ```bash
-sudo nano /etc/nginx/sites-available/magun-cloud
+sudo nano /etc/nginx/sites-available/your-domain
 ```
 
 The key parts are already configured:
 - HTTP → HTTPS redirect
-- `tunnel.magun.cloud` — WebSocket endpoint for CLI connections
-- `*.magun.cloud` — wildcard proxy for tunnel traffic (passes full `Host` header to Node)
+- `tunnel.your-domain.com` — WebSocket endpoint for CLI connections
+- `*.your-domain.com` — wildcard proxy for tunnel traffic (passes full `Host` header to Node)
 
 Test and reload nginx:
 
@@ -198,7 +199,7 @@ sudo systemctl reload nginx
 cd mbeam/server
 
 # Start
-pm2 start ecosystem.config.js
+PORT=3000 BASE_DOMAIN=your-domain.com pm2 start ecosystem.config.js
 
 # Save so it starts on reboot
 pm2 save
@@ -209,13 +210,13 @@ pm2 startup   # follow the printed command
 
 ```bash
 cd mbeam/server
-PORT=3000 BASE_DOMAIN=magun.cloud node index.js
+PORT=3000 BASE_DOMAIN=your-domain.com node index.js
 ```
 
 **Check it's running:**
 
 ```bash
-curl https://magun.cloud
+curl https://your-domain.com
 # → Magun Beam tunnel server
 ```
 
@@ -279,8 +280,8 @@ mbeam 3000 --json
 # Multiple webhooks
 mbeam 8080 --webhook https://hooks.slack.com/... --webhook https://myagent.example.com/events
 
-# Point at your own server (if not using magun.cloud)
-mbeam 3000 --server wss://tunnel.yourdomain.com/tunnel
+# Point at your own server
+mbeam 3000 --server wss://tunnel.your-domain.com/tunnel
 ```
 
 **What you see when it starts:**
@@ -290,8 +291,8 @@ mbeam 3000 --server wss://tunnel.yourdomain.com/tunnel
    ✦ Magun Beam — tunnel active
   ────────────────────────────────────────────────────
    Local      →  http://localhost:3000
-   Public     →  https://a3f9c12b.magun.cloud
-   Inspector  →  https://a3f9c12b.magun.cloud/_beam
+   Public     →  https://a3f9c12b.your-domain.com
+   Inspector  →  https://a3f9c12b.your-domain.com/_beam
   ────────────────────────────────────────────────────
    Ctrl+C to stop
 ```
@@ -311,8 +312,8 @@ mbeam 3000 --json
 ```
 
 ```jsonl
-{"type":"connecting","server":"wss://tunnel.magun.cloud/tunnel","ts":1710000000000}
-{"type":"registered","url":"https://a3f9c12b.magun.cloud","inspector":"https://a3f9c12b.magun.cloud/_beam","subdomain":"a3f9c12b","port":3000,"ts":1710000000100}
+{"type":"connecting","server":"wss://tunnel.your-domain.com/tunnel","ts":1710000000000}
+{"type":"registered","url":"https://a3f9c12b.your-domain.com","inspector":"https://a3f9c12b.your-domain.com/_beam","subdomain":"a3f9c12b","port":3000,"ts":1710000000100}
 {"type":"request","method":"GET","path":"/","status":200,"latency":23,"ts":1710000001000}
 {"type":"offline","ts":1710000002000}
 {"type":"online","ts":1710000005000}
@@ -386,7 +387,7 @@ mbeam 3000 \
 Every tunnel gets a real-time dashboard at `/_beam`:
 
 ```
-https://a3f9c12b.magun.cloud/_beam
+https://a3f9c12b.your-domain.com/_beam
 ```
 
 - Live traffic log (method, path, status, latency) via SSE
@@ -405,13 +406,13 @@ Any agent can observe a tunnel's state via HTTP:
 
 ```bash
 # Full stats
-curl https://a3f9c12b.magun.cloud/_beam/api/stats
+curl https://a3f9c12b.your-domain.com/_beam/api/stats
 
 # Recent 100 requests
-curl https://a3f9c12b.magun.cloud/_beam/api/traffic
+curl https://a3f9c12b.your-domain.com/_beam/api/traffic
 
 # Discovered route map
-curl https://a3f9c12b.magun.cloud/_beam/api/routes
+curl https://a3f9c12b.your-domain.com/_beam/api/routes
 ```
 
 `/stats` response shape:
@@ -419,8 +420,8 @@ curl https://a3f9c12b.magun.cloud/_beam/api/routes
 ```json
 {
   "subdomain": "a3f9c12b",
-  "url": "https://a3f9c12b.magun.cloud",
-  "inspector": "https://a3f9c12b.magun.cloud/_beam",
+  "url": "https://a3f9c12b.your-domain.com",
+  "inspector": "https://a3f9c12b.your-domain.com/_beam",
   "isOnline": true,
   "totalRequests": 142,
   "totalErrors": 3,
@@ -443,7 +444,7 @@ curl https://a3f9c12b.magun.cloud/_beam/api/routes
 Subscribe to live events from a tunnel — useful for a supervisor agent watching multiple tunnels:
 
 ```bash
-curl -N https://a3f9c12b.magun.cloud/_beam/stream
+curl -N https://a3f9c12b.your-domain.com/_beam/stream
 ```
 
 ```
@@ -490,10 +491,10 @@ Cache is in-memory per tunnel session — it resets when the tunnel closes.
 
 **Server:**
 
-| Variable      | Default       | Description                     |
-|---------------|---------------|---------------------------------|
-| `PORT`        | `3000`        | Port to listen on               |
-| `BASE_DOMAIN` | `magun.cloud` | Root domain for tunnel URLs     |
+| Variable      | Default            | Description                     |
+|---------------|--------------------|---------------------------------|
+| `PORT`        | `3000`             | Port to listen on               |
+| `BASE_DOMAIN` | `your-domain.com`  | Root domain for tunnel URLs     |
 
 **CLI:**
 
