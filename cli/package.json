@@ -1,16 +1,34 @@
 {
-  "name": "mbeam",
+  "name": "@magun/mbeam",
   "version": "0.1.0",
-  "description": "Magun Beam – instant HTTPS tunnels to localhost",
+  "description": "Magun Beam – instant HTTPS tunnels to localhost, built for AI agents",
   "main": "index.js",
   "bin": {
-    "mbeam": "./bin/mbeam.js"
+    "mbeam": "bin/mbeam.js"
   },
   "scripts": {
     "test": "node bin/mbeam.js --help"
   },
-  "keywords": ["tunnel", "ngrok", "localhost", "magun", "preview"],
+  "keywords": [
+    "tunnel",
+    "ngrok",
+    "localhost",
+    "magun",
+    "preview",
+    "agent",
+    "ai",
+    "https",
+    "expose"
+  ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/magun-cloud/mbeam.git"
+  },
+  "homepage": "https://github.com/magun-cloud/mbeam#readme",
+  "bugs": {
+    "url": "https://github.com/magun-cloud/mbeam/issues"
+  },
   "dependencies": {
     "ws": "^8.18.0"
   },

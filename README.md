@@ -235,13 +235,13 @@ pm2 stop mbeam-server
 Install globally on any machine or VPS where you want to open tunnels:
 
 ```bash
-npm install -g mbeam
+npm install -g @magun/mbeam
 ```
 
 Or run directly without installing:
 
 ```bash
-npx mbeam 3000
+npx @magun/mbeam 3000
 ```
 
 Or clone the repo and link locally:
